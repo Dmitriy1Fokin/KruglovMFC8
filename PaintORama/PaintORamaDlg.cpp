@@ -53,6 +53,8 @@ CPaintORamaDlg::CPaintORamaDlg(CWnd* pParent /*=NULL*/)
 	: CDialogEx(IDD_PAINTORAMA_DIALOG, pParent)
 {
 	m_hIcon = AfxGetApp()->LoadIcon(IDR_MAINFRAME);
+
+	m_PenColor = RGB(0, 0, 0);
 }
 
 void CPaintORamaDlg::DoDataExchange(CDataExchange* pDX)
@@ -68,6 +70,7 @@ BEGIN_MESSAGE_MAP(CPaintORamaDlg, CDialogEx)
 	ON_WM_LBUTTONDOWN()
 	ON_WM_MOUSEMOVE()
 	ON_WM_LBUTTONUP()
+	ON_STN_CLICKED(IDC_PENCOLOR, &CPaintORamaDlg::OnStnClickedPencolor)
 END_MESSAGE_MAP()
 
 
@@ -108,6 +111,11 @@ pSysMenu->AppendMenu(MF_STRING, IDM_ABOUTBOX, strAboutMenu);
 	p_Canvas->GetWindowRect(&m_Canvas);
 	ScreenToClient(&m_Canvas);
 	m_Canvas.DeflateRect(2, 2, 1, 1);
+
+	CWnd* pPenColor = GetDlgItem(IDC_PENCOLOR);
+	pPenColor->GetWindowRect(&m_PenColorSwatch);
+	ScreenToClient(&m_PenColorSwatch);
+	m_PenColorSwatch.DeflateRect(2, 2, 1, 1);
 
 	return TRUE;  // возврат значения TRUE, если фокус не передан элементу управления
 }
@@ -182,6 +190,8 @@ void CPaintORamaDlg::OnLButtonDown(UINT nFlags, CPoint point)
 	{
 		m_LineStart = point;
 		m_LineEnd = point;
+		m_Pen.DeleteObject();
+		m_Pen.CreatePen(PS_SOLID, 1, m_PenColor);
 		SetCapture();
 	}
 
@@ -195,6 +205,7 @@ void CPaintORamaDlg::OnMouseMove(UINT nFlags, CPoint point)
 	if ((nFlags & MK_LBUTTON) && m_Canvas.PtInRect(point))
 	{
 	CClientDC dc(this);
+	dc.SelectObject(&m_Pen);
 	m_LineEnd = point;
 	dc.MoveTo(m_LineStart);
 	dc.LineTo(m_LineEnd);
@@ -211,4 +222,20 @@ void CPaintORamaDlg::OnLButtonUp(UINT nFlags, CPoint point)
 	ReleaseCapture();
 
 	CDialogEx::OnLButtonUp(nFlags, point);
+}
+
+
+void CPaintORamaDlg::OnStnClickedPencolor()
+{
+	// TODO: добавьте свой код обработчика уведомлений
+	CColorDialog dlg(m_PenColor);
+
+	if (dlg.DoModal() == IDOK)
+	{
+		m_PenColor = dlg.GetColor();
+		CBrush swatch;
+		swatch.CreateSolidBrush(m_PenColor);
+		CClientDC dc(this);
+		dc.FillRect(&m_PenColorSwatch, &swatch);
+	}
 }

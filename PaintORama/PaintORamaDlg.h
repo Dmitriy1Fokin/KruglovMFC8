@@ -42,4 +42,11 @@ public:
 	afx_msg void OnLButtonDown(UINT nFlags, CPoint point);
 	afx_msg void OnMouseMove(UINT nFlags, CPoint point);
 	afx_msg void OnLButtonUp(UINT nFlags, CPoint point);
+private:
+	COLORREF m_PenColor;
+	CRect m_PenColorSwatch;
+public:
+	afx_msg void OnStnClickedPencolor();
+private:
+	CPen m_Pen;
 };
