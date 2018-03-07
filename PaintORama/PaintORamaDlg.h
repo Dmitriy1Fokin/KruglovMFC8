@@ -3,6 +3,7 @@
 //
 
 #pragma once
+#include "afxwin.h"
 
 
 // диалоговое окно CPaintORamaDlg
@@ -33,23 +34,25 @@ protected:
 	DECLARE_MESSAGE_MAP()
 private:
 	CRect m_Canvas;
-public:
-	afx_msg void OnClickedClearbtn();
-private:
 	CPoint m_LineEnd;
 	CPoint m_LineStart;
-public:
-	afx_msg void OnLButtonDown(UINT nFlags, CPoint point);
-	afx_msg void OnMouseMove(UINT nFlags, CPoint point);
-	afx_msg void OnLButtonUp(UINT nFlags, CPoint point);
-private:
 	COLORREF m_PenColor;
 	CRect m_PenColorSwatch;
-public:
-	afx_msg void OnStnClickedPencolor();
-private:
 	CPen m_Pen;
+	bool m_IsDrawing;
+
+	void DrawShape(bool stretch = false);
+
 public:
 	int m_PenWidth;
 	int m_PenStyle;
+	CComboBox m_ShapesCombo;
+	
+	afx_msg void OnClickedClearbtn();
+	afx_msg void OnLButtonDown(UINT nFlags, CPoint point);
+	afx_msg void OnMouseMove(UINT nFlags, CPoint point);
+	afx_msg void OnLButtonUp(UINT nFlags, CPoint point);
+	afx_msg void OnStnClickedPencolor();
+
+	
 };

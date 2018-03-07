@@ -66,6 +66,7 @@ void CPaintORamaDlg::DoDataExchange(CDataExchange* pDX)
 	DDX_Text(pDX, IDC_PENWIDTH, m_PenWidth);
 	DDV_MinMaxInt(pDX, m_PenWidth, 1, 32);
 	DDX_Radio(pDX, IDC_SOLID_PEN, m_PenStyle);
+	DDX_Control(pDX, IDC_SHAPES, m_ShapesCombo);
 }
 
 BEGIN_MESSAGE_MAP(CPaintORamaDlg, CDialogEx)
@@ -127,6 +128,8 @@ pSysMenu->AppendMenu(MF_STRING, IDM_ABOUTBOX, strAboutMenu);
 	pSpin->SetRange(1, 32);
 	pSpin->SetPos(1);
 
+	m_ShapesCombo.SetCurSel(0);
+
 	return TRUE;  // возврат значения TRUE, если фокус не передан элементу управления
 }
 
@@ -179,8 +182,6 @@ HCURSOR CPaintORamaDlg::OnQueryDragIcon()
 	return static_cast<HCURSOR>(m_hIcon);
 }
 
-
-
 void CPaintORamaDlg::OnClickedClearbtn()
 {
 	// TODO: добавьте свой код обработчика уведомлений
@@ -192,7 +193,6 @@ void CPaintORamaDlg::OnClickedClearbtn()
 	dc.Rectangle(m_Canvas);
 }
 
-
 void CPaintORamaDlg::OnLButtonDown(UINT nFlags, CPoint point)
 {
 	// TODO: добавьте свой код обработчика сообщений или вызов стандартного
@@ -200,6 +200,8 @@ void CPaintORamaDlg::OnLButtonDown(UINT nFlags, CPoint point)
 	{
 		m_LineStart = point;
 		m_LineEnd = point;
+
+		m_IsDrawing = true;
 		
 		m_Pen.DeleteObject();
 		UpdateData(TRUE);
@@ -211,32 +213,45 @@ void CPaintORamaDlg::OnLButtonDown(UINT nFlags, CPoint point)
 	CDialogEx::OnLButtonDown(nFlags, point);
 }
 
-
 void CPaintORamaDlg::OnMouseMove(UINT nFlags, CPoint point)
 {
 	// TODO: добавьте свой код обработчика сообщений или вызов стандартного
-	if ((nFlags & MK_LBUTTON) && m_Canvas.PtInRect(point))
+	if (m_IsDrawing && (nFlags & MK_LBUTTON) && m_Canvas.PtInRect(point))
 	{
-	CClientDC dc(this);
-	dc.SelectObject(&m_Pen);
-	m_LineEnd = point;
-	dc.MoveTo(m_LineStart);
-	dc.LineTo(m_LineEnd);
-	m_LineStart = m_LineEnd;
+		DrawShape(true);
+		m_LineStart = m_LineEnd;
+		DrawShape(true);
 	}
 
 	CDialogEx::OnMouseMove(nFlags, point);
 }
 
-
 void CPaintORamaDlg::OnLButtonUp(UINT nFlags, CPoint point)
 {
 	// TODO: добавьте свой код обработчика сообщений или вызов стандартного
+	
+	//Отключить режим рисования
+	m_IsDrawing = FALSE;
+
+	/*Если мышка отпущена внутри области рисования, то нарисовать фигуру окончательно*/
+	if (m_Canvas.PtInRect(point))
+	{
+		m_LineEnd = point;
+		DrawShape();
+	}
+	//Если нет, то стереть
+	else
+	{
+		DrawShape(true);
+	}
+
+	m_LineStart = point;
+
+	//Отпустить мышь
 	ReleaseCapture();
 
 	CDialogEx::OnLButtonUp(nFlags, point);
 }
-
 
 void CPaintORamaDlg::OnStnClickedPencolor()
 {
@@ -251,4 +266,52 @@ void CPaintORamaDlg::OnStnClickedPencolor()
 		CClientDC dc(this);
 		dc.FillRect(&m_PenColorSwatch, &swatch);
 	}
+}
+
+void CPaintORamaDlg::DrawShape(bool stretch)
+{
+	//Получить объект контекста устройства
+	CClientDC dc(this);
+
+	//Установить атрибуты DC
+	dc.SetAttribDC(dc);
+	dc.IntersectClipRect(m_Canvas);
+
+	//Получить номер позиции из спика названий фигур
+	int drawmode = m_ShapesCombo.GetCurSel();
+	
+	//Выбрать перо
+	dc.SelectObject(&m_Pen);
+
+	//Метод резиновой нити
+	if (stretch && (drawmode != 0))
+	{
+		//Установить метод резиновой нити
+		dc.SetROP2(R2_NOT);
+	}
+
+	//Конструкция выбора фигуры
+	switch (drawmode)
+	{
+		//Свободное рисование
+	case 0:
+		dc.MoveTo(m_LineStart);
+		dc.LineTo(m_LineEnd);
+		m_LineStart = m_LineEnd;
+		break;
+		//Рисование линий
+	case 1:
+		dc.MoveTo(m_LineStart);
+		dc.LineTo(m_LineEnd);
+		break;
+		//Рисование элипсов
+	case 2:
+		dc.Ellipse(CRect(m_LineStart, m_LineEnd));
+		break;
+		//Рисование прямоугольника
+	case 3:
+		dc.Rectangle(CRect(m_LineStart, m_LineEnd));
+		break;
+	}
+
 }
