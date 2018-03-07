@@ -49,4 +49,7 @@ public:
 	afx_msg void OnStnClickedPencolor();
 private:
 	CPen m_Pen;
+public:
+	int m_PenWidth;
+	int m_PenStyle;
 };

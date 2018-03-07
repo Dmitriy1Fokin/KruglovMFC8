@@ -51,15 +51,21 @@ END_MESSAGE_MAP()
 
 CPaintORamaDlg::CPaintORamaDlg(CWnd* pParent /*=NULL*/)
 	: CDialogEx(IDD_PAINTORAMA_DIALOG, pParent)
+	, m_PenWidth(0)
+	, m_PenStyle(0)
 {
 	m_hIcon = AfxGetApp()->LoadIcon(IDR_MAINFRAME);
 
 	m_PenColor = RGB(0, 0, 0);
+	m_PenWidth = 1;
 }
 
 void CPaintORamaDlg::DoDataExchange(CDataExchange* pDX)
 {
 	CDialogEx::DoDataExchange(pDX);
+	DDX_Text(pDX, IDC_PENWIDTH, m_PenWidth);
+	DDV_MinMaxInt(pDX, m_PenWidth, 1, 32);
+	DDX_Radio(pDX, IDC_SOLID_PEN, m_PenStyle);
 }
 
 BEGIN_MESSAGE_MAP(CPaintORamaDlg, CDialogEx)
@@ -116,6 +122,10 @@ pSysMenu->AppendMenu(MF_STRING, IDM_ABOUTBOX, strAboutMenu);
 	pPenColor->GetWindowRect(&m_PenColorSwatch);
 	ScreenToClient(&m_PenColorSwatch);
 	m_PenColorSwatch.DeflateRect(2, 2, 1, 1);
+
+	CSpinButtonCtrl* pSpin = (CSpinButtonCtrl*)GetDlgItem(IDC_SPIN1);
+	pSpin->SetRange(1, 32);
+	pSpin->SetPos(1);
 
 	return TRUE;  // возврат значения TRUE, если фокус не передан элементу управления
 }
@@ -190,8 +200,11 @@ void CPaintORamaDlg::OnLButtonDown(UINT nFlags, CPoint point)
 	{
 		m_LineStart = point;
 		m_LineEnd = point;
+		
 		m_Pen.DeleteObject();
-		m_Pen.CreatePen(PS_SOLID, 1, m_PenColor);
+		UpdateData(TRUE);
+		m_Pen.CreatePen(m_PenStyle, m_PenWidth, m_PenColor);
+
 		SetCapture();
 	}
 
