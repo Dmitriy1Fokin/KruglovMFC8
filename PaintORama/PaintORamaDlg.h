@@ -45,6 +45,7 @@ private:
 	CRect m_BrushColorSwatch;
 	CRect m_BrushPreviewSwatch;
 	int m_BrushStyle;
+	CMetaFileDC* m_pMF;
 
 	void DrawShape(bool stretch = false);
 	void PaintBrushPreview();
@@ -63,4 +64,5 @@ public:
 	afx_msg void OnSelchangeBrushstyle();
 		
 	afx_msg void OnClickedBrushcolor();
+	afx_msg void OnDestroy();
 };

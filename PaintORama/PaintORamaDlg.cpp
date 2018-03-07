@@ -82,6 +82,7 @@ BEGIN_MESSAGE_MAP(CPaintORamaDlg, CDialogEx)
 	ON_STN_CLICKED(IDC_PENCOLOR, &CPaintORamaDlg::OnStnClickedPencolor)
 	ON_LBN_SELCHANGE(IDC_BRUSHSTYLE, &CPaintORamaDlg::OnSelchangeBrushstyle)
 	ON_STN_CLICKED(IDC_BRUSHCOLOR, &CPaintORamaDlg::OnClickedBrushcolor)
+	ON_WM_DESTROY()
 END_MESSAGE_MAP()
 
 
@@ -146,8 +147,6 @@ pSysMenu->AppendMenu(MF_STRING, IDM_ABOUTBOX, strAboutMenu);
 	//Cузить рамку
 	m_BrushColorSwatch.DeflateRect(2, 2, 1, 1);
 
-
-
 	//Получить указатель на элемент управления
 	CWnd* pPreviewColor = GetDlgItem(IDC_BRUSHPREVIEW);
 
@@ -184,6 +183,9 @@ pSysMenu->AppendMenu(MF_STRING, IDM_ABOUTBOX, strAboutMenu);
 	//Установить начальную позицию курсора на 8 элементе
 	m_BrushStyleList.SetCurSel(8);
 
+	m_pMF = new CMetaFileDC;
+	m_pMF->Create();
+
 
 	return TRUE;  // возврат значения TRUE, если фокус не передан элементу управления
 }
@@ -211,6 +213,37 @@ void CPaintORamaDlg::OnPaint()
 	{
 		CPaintDC dc(this); // контекст устройства для рисования
 
+						   //Закрытие метафайла
+		HMETAFILE hmf = m_pMF->Close();
+		//Воспроизведение метафайла
+		dc.PlayMetaFile(hmf);
+
+		//Присваивание указателя на старый объект переменной temp
+		CMetaFileDC* temp = new CMetaFileDC;
+		//Закрытие объекта
+		temp->Create();
+		//Проигрование метафайла
+		temp->PlayMetaFile(hmf);
+
+		//Удаление метаструктуры и метафайла
+		DeleteMetaFile(hmf);
+		delete hmf;
+
+		//Присваивание временного указателя постоянному
+		m_pMF = temp;
+		/*Если первый раз была вызвана функия OnPaint, то вызавать очистку экрана*/
+		static bool firstTime = TRUE;
+		if (firstTime)
+		{
+			OnClickedClearbtn();
+			firstTime = FALSE;
+		}
+
+
+
+
+
+
 		SendMessage(WM_ICONERASEBKGND, reinterpret_cast<WPARAM>(dc.GetSafeHdc()), 0);
 
 		// Выравнивание значка по центру клиентского прямоугольника
@@ -228,6 +261,34 @@ void CPaintORamaDlg::OnPaint()
 	{
 		CDialogEx::OnPaint();
 	}
+
+	//CPaintDC dc(this);
+
+	////Закрытие метафайла
+	//HMETAFILE hmf = m_pMF->Close();
+	////Воспроизведение метафайла
+	//dc.PlayMetaFile(hmf);
+
+	////Присваивание указателя на старый объект переменной temp
+	//CMetaFileDC* temp = new CMetaFileDC;
+	////Закрытие объекта
+	//temp->Create();
+	////Проигрование метафайла
+	//temp->PlayMetaFile(hmf);
+
+	////Удаление метаструктуры и метафайла
+	//DeleteMetaFile(hmf);
+	//delete hmf;
+
+	////Присваивание временного указателя постоянному
+	//m_pMF = temp;
+	///*Если первый раз была вызвана функия OnPaint, то вызавать очистку экрана*/
+	//static bool firstTime = TRUE;
+	//if (firstTime)
+	//{
+	//	OnClickedClearbtn();
+	//	firstTime = FALSE;
+	//}
 }
 
 // Система вызывает эту функцию для получения отображения курсора при перемещении
@@ -243,9 +304,19 @@ void CPaintORamaDlg::OnClickedClearbtn()
 
 	CClientDC dc(this);
 
-	dc.SelectStockObject(NULL_PEN);
+	HMETAFILE hmf = m_pMF->Close();
+	::DeleteMetaFile(hmf);
+	delete hmf;
 
+	m_pMF = new CMetaFileDC;
+	m_pMF->Create();
+	m_pMF->SetAttribDC(dc);
+
+	dc.SelectStockObject(NULL_PEN);
 	dc.Rectangle(m_Canvas);
+
+	m_pMF->SelectStockObject(NULL_PEN);
+	m_pMF->Rectangle(m_Canvas.left, m_Canvas.top, m_Canvas.right + 1, m_Canvas.bottom + 1);
 }
 
 void CPaintORamaDlg::OnLButtonDown(UINT nFlags, CPoint point)
@@ -330,15 +401,19 @@ void CPaintORamaDlg::DrawShape(bool stretch)
 
 	//Установить атрибуты DC
 	dc.SetAttribDC(dc);
+	dc.SelectObject(&m_Brush);
+	m_pMF->SetAttribDC(dc);
 	dc.IntersectClipRect(m_Canvas);
+	m_pMF->IntersectClipRect(m_Canvas);
 
 	//Получить номер позиции из спика названий фигур
 	int drawmode = m_ShapesCombo.GetCurSel();
 	
 	//Выбрать перо
+	dc.SelectObject(&m_Pen);
 	dc.SelectObject(&m_Brush);
-
-	//dc.SelectObject(&m_Pen);
+	m_pMF->SelectObject(&m_Pen);
+	m_pMF->SelectObject(&m_Brush);
 
 	//Метод резиновой нити
 	if (stretch && (drawmode != 0))
@@ -354,23 +429,40 @@ void CPaintORamaDlg::DrawShape(bool stretch)
 	case 0:
 		dc.MoveTo(m_LineStart);
 		dc.LineTo(m_LineEnd);
+		m_pMF->MoveTo(m_LineStart);
+		m_pMF->LineTo(m_LineEnd);
 		m_LineStart = m_LineEnd;
 		break;
 		//Рисование линий
 	case 1:
 		dc.MoveTo(m_LineStart);
 		dc.LineTo(m_LineEnd);
+		/*Записать операторы в метафайл, если не выбран режим резиновой нити*/
+		if (!stretch)
+		{
+			m_pMF->MoveTo(m_LineStart);
+			m_pMF->LineTo(m_LineEnd);
+		}
 		break;
 		//Рисование элипсов
 	case 2:
 		dc.Ellipse(CRect(m_LineStart, m_LineEnd));
+		//Записать операторы в метафайл
+		if (!stretch)
+		{
+			m_pMF->Ellipse(CRect(m_LineStart, m_LineEnd));
+		}
 		break;
 		//Рисование прямоугольника
 	case 3:
 		dc.Rectangle(CRect(m_LineStart, m_LineEnd));
+		//Записать операторы в метафайл
+		if (!stretch)
+		{
+			m_pMF->Rectangle(CRect(m_LineStart, m_LineEnd));
+		}
 		break;
 	}
-
 }
 
 void CPaintORamaDlg::OnSelchangeBrushstyle()
@@ -457,4 +549,16 @@ void CPaintORamaDlg::OnClickedBrushcolor()
 
 	/*Запустить функцию создания кисти, выбранным цветом*/
 	OnSelchangeBrushstyle();
+}
+
+
+void CPaintORamaDlg::OnDestroy()
+{
+	CDialogEx::OnDestroy();
+
+	// TODO: добавьте свой код обработчика сообщений
+
+	//Закрыть и удалить метафайл
+	m_pMF->Close();
+	delete m_pMF;
 }
