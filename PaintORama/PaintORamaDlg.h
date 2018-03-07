@@ -40,19 +40,27 @@ private:
 	CRect m_PenColorSwatch;
 	CPen m_Pen;
 	bool m_IsDrawing;
+	CBrush m_Brush;
+	COLORREF m_BrushColor;
+	CRect m_BrushColorSwatch;
+	CRect m_BrushPreviewSwatch;
+	int m_BrushStyle;
 
 	void DrawShape(bool stretch = false);
+	void PaintBrushPreview();
 
 public:
 	int m_PenWidth;
 	int m_PenStyle;
 	CComboBox m_ShapesCombo;
+	CListBox m_BrushStyleList;
 	
 	afx_msg void OnClickedClearbtn();
 	afx_msg void OnLButtonDown(UINT nFlags, CPoint point);
 	afx_msg void OnMouseMove(UINT nFlags, CPoint point);
 	afx_msg void OnLButtonUp(UINT nFlags, CPoint point);
 	afx_msg void OnStnClickedPencolor();
-
-	
+	afx_msg void OnSelchangeBrushstyle();
+		
+	afx_msg void OnClickedBrushcolor();
 };
